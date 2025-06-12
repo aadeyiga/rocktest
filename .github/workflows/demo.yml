@@ -54,13 +54,10 @@ jobs:
     - name: Install flake8
       run: pip install flake8
     
-    - name: Lint with flake8 (errors only)
+    - name: Lint with flake8 (critical errors only)
       run: flake8 flaskr --count --select=E9,F63,F7,F82 --show-source --statistics
-      
-    -  name: Lint with flake8 (full check)
-       run: flake8 flaskr --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-       
-    - name: Lint with flake8 (full check)
+    
+    - name: Lint with flake8 (style check)
       run: flake8 flaskr --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       
   docker_Build_Push:
