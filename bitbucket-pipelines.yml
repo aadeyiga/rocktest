@@ -1,0 +1,69 @@
+#  Template python-build
+# okay , please run
+#  This template allows you to validate your python code.
+#  The workflow allows running tests and code linting on the default branch.
+
+image: python:3.9
+
+pipelines:
+  default:
+    - parallel:
+      - step:
+          name: Build and Test
+          caches:
+            - pip
+          script:
+            - pip install cython
+            - python setup.py build_ext --inplace  # compiles your .pyx into a .so/.pyd
+            - pip install -r requirements.txt
+            - pip install pytest
+            - pytest          
+      - step:
+          name: Lint code
+          script:
+            # Enforce style consistency across Python projects https://flake8.pycqa.org
+            - pip install flake8
+            - flake8 flaskr --count --select=E9,F63,F7,F82 --show-source --statistics
+            - flake8 flaskr --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      - step:
+          name: Build and Push image to dockerhub
+          script:
+            - docker build . -t "${DOCKERHUB_USERNAME}/flask_news:latest"
+            - echo ${DOCKERHUB_PASSWORD} | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+            - docker push "${DOCKERHUB_USERNAME}/flask_news:latest"
+          services:
+            - docker
+          caches:
+            - docker
+      - step:
+          name: Deploy to AWS EC2 ........
+          deployment: production
+          script:
+          - pipe: atlassian/ssh-run:0.5.0
+            variables:
+              SSH_USER: $EC2_USER
+              SERVER: $EC2_HOST
+              SSH_KEY: $EC2_SSH_KEY
+              COMMAND: |
+                echo "Hostname: $(hostname)"
+                echo "User: $(whoami)"
+                echo "Current directory: $(pwd)"
+                echo "Checking Docker version..."
+                docker --version
+                echo "Pulling latest image: ${DOCKERHUB_USERNAME}/flask_news:latest"
+                docker pull "${DOCKERHUB_USERNAME}/flask_news:latest"
+                echo "Stopping existing container (if running)..."
+                docker stop flask_news || true
+                echo "Removing existing container (if exists)..."
+                docker rm flask_news || true
+                echo "Running new container..."
+                docker run -d --name flask_news -p 80:8080 "${DOCKERHUB_USERNAME}/flask_news:latest"
+      
+      
+      
+           
+
+
+
+
+
